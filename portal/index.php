@@ -44,6 +44,8 @@ require_once 'header.php';
                      <ul class="nav nav-tabs card-header-tabs" id="minhaEscalaPrincipalTab" role="tablist">
                         <li class="nav-item"> <a class="nav-link active" id="escala-principal-tab" data-toggle="tab" href="#escala-principal-content" role="tab"><i class="fas fa-calendar-alt"></i> Escala</a> </li>
                         <li class="nav-item"> <a class="nav-link" id="mensagens-tab" data-toggle="tab" href="#mensagens-content" role="tab"><i class="fas fa-envelope"></i> Mensagens <?php if (isset($unread_message_count) && $unread_message_count > 0){ echo ' <span id="mensagens-count-badge" class="badge badge-danger badge-pill">'.$unread_message_count.'</span>'; } ?></a> </li>
+						<li class="nav-item"><a class="nav-link" id="metas-tab" data-toggle="tab" href="#metas-content" role="tab"><i class="fas fa-bullseye"></i> Metas</a> </li>
+						<li class="nav-item"> <a class="nav-link" id="ficha-tab" data-toggle="tab" href="#ficha-content" role="tab"><i class="fas fa-clipboard-list"></i> Ficha de Roleta</a> </li>
                         <li class="nav-item"> <a class="nav-link" id="senha-tab" data-toggle="tab" href="#senha-content" role="tab"><i class="fas fa-key"></i> Trocar Senha</a> </li>
                      </ul>
                  </div>
@@ -104,7 +106,7 @@ require_once 'header.php';
                             ?>
 
                             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
-                                <h4 class='mb-0 mr-3'>Resumo da Semana (<?php echo isset($data_inicio_semana) ? date('d/m', strtotime($data_inicio_semana)) . " a " . date('d/m', strtotime($data_fim_semana)) : date('d/m/Y'); ?>)</h4>
+                                <h4 class='mb-0 mr-3'><i class="fas fa-calendar-alt text-primary"></i> Resumo da Semana (<?php echo isset($data_inicio_semana) ? date('d/m', strtotime($data_inicio_semana)) . " a " . date('d/m', strtotime($data_fim_semana)) : date('d/m/Y'); ?>)</h4>
                                 <form action="index.php#minha-escala" method="GET" class="form-inline">
                                     <label for="data_escala_input" class="mr-2"><small>Ver semana de:</small></label>
                                     <input type="date" name="data_escala" id="data_escala_input" class="form-control form-control-sm mr-2" value="<?php echo htmlspecialchars($data_selecionada_contexto); ?>" onchange="this.form.submit()">
@@ -216,7 +218,7 @@ require_once 'header.php';
                                 <hr>
                             <?php else: ?>
                                 <div class="alert alert-info" role="alert">
-                                    <i class="fas fa-info-circle"></i> Faça login para visualizar sua escala planejada.
+                                    <i class="fas fa-info-circle text-primary"></i> Faça login para visualizar sua escala planejada.
                                 </div>
                                 <hr>
                             <?php endif; ?>
@@ -236,11 +238,30 @@ require_once 'header.php';
                         </div>
 
                         <div class="tab-pane fade" id="mensagens-content" role="tabpanel" aria-labelledby="mensagens-tab">
-                            <h4>Suas Mensagens</h4> <hr>
+                            <h4><i class="fas fa-envelope text-primary"></i> Suas Mensagens</h4> <hr>
                              <div id="mensagens-lista"> <p class="text-muted p-3">Carregando mensagens...</p> </div>
                         </div>
+						<div class="tab-pane fade" id="metas-content" role="tabpanel" aria-labelledby="metas-tab">
+						<h4><i class="fas fa-bullseye text-primary"></i> Minhas Metas</h4> 
+						<hr>
+						<div class="d-flex flex-column justify-content-center align-items-center py-5 text-muted bg-light border rounded">
+							<i class="fas fa-hard-hat fa-3x mb-3 text-warning"></i>
+							<h5>Seção em Construção</h5>
+							<p class="mb-0">Em breve você poderá acompanhar suas metas e desempenho operacional aqui.</p>
+								</div>
+						</div>
+
+						<div class="tab-pane fade" id="ficha-content" role="tabpanel" aria-labelledby="ficha-tab">
+							<h4><i class="fas fa-clipboard-list text-primary"></i> Ficha de Roleta</h4> 
+							<hr>
+							<div class="d-flex flex-column justify-content-center align-items-center py-5 text-muted bg-light border rounded">
+								<i class="fas fa-tools fa-3x mb-3 text-info"></i>
+								<h5>Novidade Chegando</h5>
+								<p class="mb-0">Estamos preparando esta área para o lançamento da ficha digital.</p>
+							</div>
+						</div>
                         <div class="tab-pane fade" id="senha-content" role="tabpanel" aria-labelledby="senha-tab">
-                            <h4>Trocar Sua Senha</h4> <hr>
+                            <h4><i class="fas fa-key text-primary"></i> Trocar Sua Senha</h4> <hr>
                             <?php if(isset($_SESSION['senha_success'])){echo '<div class="alert alert-success alert-dismissible fade show">'.htmlspecialchars($_SESSION['senha_success']).'<button type="button" class="close" data-dismiss="alert">&times;</button></div>';unset($_SESSION['senha_success']);} if(isset($_SESSION['senha_error'])){echo '<div class="alert alert-danger alert-dismissible fade show">'.htmlspecialchars($_SESSION['senha_error']).'<button type="button" class="close" data-dismiss="alert">&times;</button></div>';unset($_SESSION['senha_error']);} ?>
                             <form action="processa_troca_senha.php" method="POST" id="form-trocar-senha"> <div class="form-group row"><label for="senha_atual" class="col-md-3 col-form-label">Senha Atual:</label><div class="col-md-6"><input type="password" class="form-control" id="senha_atual" name="senha_atual" required></div></div> <div class="form-group row"><label for="nova_senha" class="col-md-3 col-form-label">Nova Senha:</label><div class="col-md-6"><input type="password" class="form-control" id="nova_senha" name="nova_senha" required minlength="6"><small class="form-text text-muted">Mín. 6 caracteres.</small></div></div> <div class="form-group row"><label for="confirma_nova_senha" class="col-md-3 col-form-label">Confirmar Nova Senha:</label><div class="col-md-6"><input type="password" class="form-control" id="confirma_nova_senha" name="confirma_nova_senha" required minlength="6"></div></div> <div class="form-group row"><div class="col-md-9 offset-md-3"><button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Alterar Senha</button></div></div> </form>
                         </div>
