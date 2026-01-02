@@ -1,8 +1,9 @@
 <?php
 // =================================================================
-//  Parceiro de Programação - AJAX Diário de Bordo (v1.6)
-//  - NOVO: Busca por "Linha e Hora" (Interseção de horários).
-//  - MANTIDO: Filtro de WorkID e Resumo de Linhas na aba.
+//  Parceiro de Programação - AJAX Diário de Bordo (v4.0 - Espelho do Portal)
+//  - Lógica de Recheio: Cópia fiel do buscar_horario.php
+//  - Lógica de WorkID: Filtro estrito (<) + Linha Final (End Time)
+//  - Visual: Linha preenchida em todas as colunas, Limpeza nas pontas.
 // =================================================================
 
 ob_start();
@@ -30,7 +31,7 @@ try {
 
     // --- FUNÇÃO AUXILIAR: Formatar Hora GTFS ---
     function formatar_hora_gtfs($hora_db) {
-        if (empty($hora_db)) return '';
+        if (empty($hora_db)) return '-';
         $hora_curta = substr($hora_db, 0, 5);
         $parts = explode(':', $hora_curta);
         if(count($parts) < 2) return $hora_curta;
@@ -46,15 +47,12 @@ try {
     if ($acao === 'get_ultima_data') {
         $res = $conexao->query("SELECT MAX(data_viagem) as ultima_data FROM relatorios_viagens");
         $row = $res ? $res->fetch_assoc() : null;
-        ob_clean();
-        echo json_encode(['data' => $row['ultima_data'] ?? date('Y-m-d')]);
-        exit;
+        ob_clean(); echo json_encode(['data' => $row['ultima_data'] ?? date('Y-m-d')]); exit;
     }
 
     if ($acao === 'listar_linhas') {
         $res = $conexao->query("SELECT DISTINCT ROUTE_ID as linha FROM relatorios_viagens WHERE data_viagem = '$data_selecionada' AND ROUTE_ID IS NOT NULL ORDER BY ROUTE_ID");
-        $linhas = [];
-        if ($res) while($r = $res->fetch_assoc()) $linhas[] = $r['linha'];
+        $linhas = []; if ($res) while($r = $res->fetch_assoc()) $linhas[] = $r['linha'];
         ob_clean(); echo json_encode($linhas); exit;
     }
 
@@ -67,11 +65,9 @@ try {
         $sql = "SELECT DISTINCT DUTY_COMPANYCODE as workid 
                 FROM relatorios_servicos 
                 WHERE '$data_selecionada' BETWEEN data_inicio_vigencia AND data_fim_vigencia 
-                $where_linha 
-                ORDER BY DUTY_COMPANYCODE ASC";
+                $where_linha ORDER BY DUTY_COMPANYCODE ASC";
         $res = $conexao->query($sql);
-        $works = [];
-        if ($res) while($r = $res->fetch_assoc()) $works[] = $r['workid'];
+        $works = []; if ($res) while($r = $res->fetch_assoc()) $works[] = $r['workid'];
         ob_clean(); echo json_encode($works); exit;
     }
 
@@ -79,49 +75,31 @@ try {
     if ($acao === 'gerar_diario') {
         $tipo_busca = $_GET['tipo'] ?? 'workid'; 
         $valor_busca = $_GET['valor'] ?? '';
-
         if (!$valor_busca) throw new Exception('Valor de busca não informado.');
 
         $blocos_para_processar = [];
 
-        // 1. Identificar Blocos baseados no Tipo de Busca
+        // 1. Identificar Blocos
         if ($tipo_busca === 'workid') {
-            // BUSCA POR SERVIÇO (WORKID)
             $sql = "SELECT DISTINCT TRIM(REFERREDVB_COMPANYCODE) as bloco
                     FROM relatorios_servicos
                     WHERE TRIM(DUTY_COMPANYCODE) = TRIM('$valor_busca')
                     AND '$data_selecionada' BETWEEN data_inicio_vigencia AND data_fim_vigencia";
-            
             $res = $conexao->query($sql);
             if ($res->num_rows > 0) while ($d = $res->fetch_assoc()) $blocos_para_processar[] = ['bloco' => $d['bloco']];
-            else enviar_erro_json("Bloco não encontrado para este WorkID.");
+            else enviar_erro_json("Bloco não encontrado.");
 
         } elseif ($tipo_busca === 'linha_hora') {
-            // NOVO: BUSCA POR LINHA E INTERVALO DE HORÁRIO
-            $hora_ini = $_GET['hora_ini'] ?? '00:00';
+             $hora_ini = $_GET['hora_ini'] ?? '00:00';
             $hora_fim = $_GET['hora_fim'] ?? '23:59';
-            
-            // Query inteligente: Busca blocos que tiveram viagens na LINHA X
-            // que começaram, terminaram ou atravessaram o intervalo H1-H2
-            $sql = "
-                SELECT DISTINCT TRIM(BLOCK_NUMBER) as bloco 
-                FROM relatorios_viagens 
-                WHERE data_viagem = '$data_selecionada' 
-                AND ROUTE_ID = '$valor_busca'
-                AND (
-                    (START_TIME BETWEEN '$hora_ini' AND '$hora_fim') OR 
-                    (END_TIME BETWEEN '$hora_ini' AND '$hora_fim') OR 
-                    (START_TIME <= '$hora_ini' AND END_TIME >= '$hora_fim')
-                )
-                ORDER BY BLOCK_NUMBER
-            ";
-            
+            $sql = "SELECT DISTINCT TRIM(BLOCK_NUMBER) as bloco FROM relatorios_viagens 
+                    WHERE data_viagem = '$data_selecionada' AND ROUTE_ID = '$valor_busca'
+                    AND ((START_TIME BETWEEN '$hora_ini' AND '$hora_fim') OR (END_TIME BETWEEN '$hora_ini' AND '$hora_fim') OR (START_TIME < '$hora_ini' AND END_TIME >= '$hora_fim'))
+                    ORDER BY BLOCK_NUMBER";
             $res = $conexao->query($sql);
             if ($res->num_rows > 0) while ($d = $res->fetch_assoc()) $blocos_para_processar[] = ['bloco' => $d['bloco']];
-            else enviar_erro_json("Nenhum bloco encontrado na linha $valor_busca entre $hora_ini e $hora_fim.");
-
+            else enviar_erro_json("Nenhum bloco encontrado.");
         } else {
-            // BUSCA POR LINHA (TODOS)
             $sql = "SELECT DISTINCT TRIM(BLOCK_NUMBER) as bloco FROM relatorios_viagens WHERE data_viagem = '$data_selecionada' AND ROUTE_ID = '$valor_busca' ORDER BY BLOCK_NUMBER";
             $res = $conexao->query($sql);
             if ($res) while ($row = $res->fetch_assoc()) $blocos_para_processar[] = ['bloco' => $row['bloco']];
@@ -129,11 +107,10 @@ try {
 
         $resultado_final = [];
 
-        // Loop para gerar o diário completo de cada bloco encontrado
         foreach ($blocos_para_processar as $item) {
             $bloco_atual = $item['bloco'];
 
-            // 2. Mapa de Serviços (WorkIDs)
+            // 2. Mapa de Serviços
             $mapa_servicos = [];
             $sql_workids = "SELECT DUTY_COMPANYCODE as workid, START_TIME, END_TIME
                             FROM relatorios_servicos 
@@ -142,12 +119,17 @@ try {
                             ORDER BY START_TIME ASC";
             $res_w = $conexao->query($sql_workids);
             if ($res_w) while ($w = $res_w->fetch_assoc()) {
-                $mapa_servicos[] = ['id' => $w['workid'], 'inicio' => substr($w['START_TIME'], 0, 5), 'fim' => substr($w['END_TIME'], 0, 5)];
+                $mapa_servicos[] = [
+                    'id' => trim($w['workid']), 
+                    'inicio' => substr($w['START_TIME'], 0, 5), 
+                    'fim' => substr($w['END_TIME'], 0, 5)
+                ];
             }
 
-            // 3. Buscar Viagens do Bloco Inteiro
+            // 3. Buscar Viagens do Bloco (Macro)
+            // Importante: DIRECTION_NUM e ROUTE_VARIANT para o recheio
             $sql_viagens = "
-                SELECT v.ROUTE_ID as linha, v.TRIP_ID, v.START_TIME, v.END_TIME,
+                SELECT v.ROUTE_ID as linha, v.TRIP_ID, v.START_TIME, v.END_TIME, v.DIRECTION_NUM,
                     l_inicio.name as nome_local_inicio, l_fim.name as nome_local_fim,
                     v.START_PLACE as cod_local_inicio, v.END_PLACE as cod_local_fim,
                     via.descricao as nome_via, v.ROUTE_VARIANT as cod_via
@@ -160,76 +142,150 @@ try {
             ";
             
             $res_viagens = $conexao->query($sql_viagens);
-            $viagens_raw = $res_viagens->fetch_all(MYSQLI_ASSOC);
+            $viagens_macro = $res_viagens->fetch_all(MYSQLI_ASSOC);
 
-            // 4. Processamento Ponto a Ponto (Lógica V1)
+            // 4. Filtragem Tipo Portal (WorkID)
+            // Lógica Exata: Seleciona apenas as viagens que COMEÇAM dentro do turno
+            if ($tipo_busca === 'workid') {
+                $meu_servico = null;
+                foreach ($mapa_servicos as $svc) {
+                    if ($svc['id'] == $valor_busca) { $meu_servico = $svc; break; }
+                }
+
+                if ($meu_servico) {
+                    $viagens_filtradas = [];
+                    foreach ($viagens_macro as $vm) {
+                        $h_viagem = substr($vm['START_TIME'], 0, 5);
+                        $ini = substr($meu_servico['inicio'], 0, 5);
+                        $fim = substr($meu_servico['fim'], 0, 5);
+                        $esta_dentro = false;
+
+                        // <--- LÓGICA ESTRITA DO PORTAL (< FIM)
+                        if ($ini > $fim) { 
+                            if ($h_viagem >= $ini || $h_viagem < $fim) $esta_dentro = true;
+                        } else { 
+                            if ($h_viagem >= $ini && $h_viagem < $fim) $esta_dentro = true;
+                        }
+
+                        if ($esta_dentro) $viagens_filtradas[] = $vm;
+                    }
+                    $viagens_macro = $viagens_filtradas;
+                }
+            }
+
+            // 5. Construção das Linhas (Macro + Recheio)
             $linhas_tabela = [];
-            $total = count($viagens_raw);
+            
+            foreach ($viagens_macro as $vm) {
+                // Prepara dados comuns
+                $origem = $vm['nome_local_inicio'] ?? $vm['cod_local_inicio'];
+                $destino = $vm['nome_local_fim'] ?? $vm['cod_local_fim'];
+                $info = $vm['nome_via'] ?? $vm['cod_via'];
+                if(empty($info) && $vm['TRIP_ID'] == 0) $info = "DESLOCAMENTO / RECOLHA";
 
-            for ($i = 0; $i < $total; $i++) {
-                $atual = $viagens_raw[$i];
-                $hora_saida = substr($atual['START_TIME'], 0, 5);
-                
-                $origem = $atual['nome_local_inicio'] ?? $atual['cod_local_inicio'];
-                $destino = $atual['nome_local_fim'] ?? $atual['cod_local_fim'];
-                $info = $atual['nome_via'] ?? $atual['cod_via'];
-                if(empty($info) && $atual['TRIP_ID'] == 0) $info = "DESLOCAMENTO / RECOLHA";
+                // Definir WorkID da linha
+                $wid_linha = ($tipo_busca === 'workid') ? $valor_busca : obter_workid($vm['START_TIME'], $mapa_servicos);
 
-                // A. Partida
-                if ($i == 0 || ($viagens_raw[$i-1]['cod_local_fim'] !== $atual['cod_local_inicio'])) {
-                    $linhas_tabela[] = [
-                        'linha' => $atual['linha'], 'tabela' => '-', 'hora_ref' => $hora_saida,
-                        'chegada_show' => '-', 'saida_show' => formatar_hora_gtfs($atual['START_TIME']),
-                        'local' => mb_strtoupper($origem, 'UTF-8'), 'info' => mb_strtoupper($info, 'UTF-8'),
-                        'is_ociosa' => ($atual['TRIP_ID'] == 0)
-                    ];
+                // --- A. LINHA MACRO (PARTIDA) ---
+                $linhas_tabela[] = [
+                    'linha' => $vm['linha'],
+                    'tabela' => '-',
+                    'workid' => $wid_linha,
+                    'chegada_show' => '-',
+                    'saida_show' => formatar_hora_gtfs($vm['START_TIME']),
+                    'local' => mb_strtoupper($origem, 'UTF-8'),
+                    'info' => mb_strtoupper($info, 'UTF-8'),
+                    'is_ociosa' => ($vm['TRIP_ID'] == 0)
+                ];
+
+                // --- B. RECHEIO (Pontos Intermediários) ---
+                // Verifica condições: Tem variante, não é recolha/deslocamento, tem trip_id
+                if (!empty($vm['cod_via']) && stripos($info, 'Recolha') === false && stripos($info, 'Deslocamento') === false && $vm['TRIP_ID'] != 0) {
+                    
+                    // 1. Busca TripCode
+                    $sqlFind = "SELECT TRIPCODE FROM relatorios_todos_horarios 
+                                WHERE LINE='{$vm['linha']}' 
+                                AND PATTERN='{$vm['cod_via']}' 
+                                AND NODE='{$vm['cod_local_inicio']}' 
+                                AND DIRECTION='{$vm['DIRECTION_NUM']}' 
+                                AND data_viagem='$data_selecionada' 
+                                AND TIME_FORMAT(DEPARTURETIME, '%H:%i') = '" . substr($vm['START_TIME'], 0, 5) . "' 
+                                LIMIT 1";
+                    
+                    $qFind = $conexao->query($sqlFind);
+                    $tripCodeFound = ($qFind && $qFind->num_rows > 0) ? $qFind->fetch_assoc()['TRIPCODE'] : null;
+
+                    if ($tripCodeFound) {
+                        // 2. Busca Detalhes
+                        $sqlDet = "SELECT t.ARRIVALTIME, t.DEPARTURETIME, t.NODE, COALESCE(l.name, t.NODE) as nome_local_legivel
+                                   FROM relatorios_todos_horarios t 
+                                   LEFT JOIN cadastros_locais l ON t.NODE = l.company_code 
+                                   WHERE t.TRIPCODE = '$tripCodeFound' 
+                                   AND t.data_viagem = '$data_selecionada' 
+                                   ORDER BY t.PASSAGEORDER ASC";
+                        $qDet = $conexao->query($sqlDet);
+                        $pontos = $qDet->fetch_all(MYSQLI_ASSOC);
+
+                        // 3. Adiciona (Ignora primeiro e último índice)
+                        if (count($pontos) > 2) {
+                            for ($k = 1; $k < count($pontos) - 1; $k++) {
+                                $p = $pontos[$k];
+                                $linhas_tabela[] = [
+                                    'linha' => $vm['linha'], // Mostra a linha
+                                    'tabela' => '-', 
+                                    'workid' => $wid_linha,  // Herda o WorkID
+                                    'chegada_show' => formatar_hora_gtfs($p['ARRIVALTIME']),
+                                    'saida_show' => formatar_hora_gtfs($p['DEPARTURETIME']),
+                                    'local' => mb_strtoupper($p['nome_local_legivel'], 'UTF-8'),
+                                    'info' => '', 
+                                    'is_ociosa' => false
+                                ];
+                            }
+                        }
+                    }
                 }
+            }
+            
+            // --- C. LINHA FINAL (CHEGADA DO BLOCO/TURNO) ---
+            // Adiciona APENAS UMA vez ao final, pegando os dados da última viagem processada
+            if (!empty($viagens_macro)) {
+                $ultima_viagem = end($viagens_macro);
+                $destino_final = $ultima_viagem['nome_local_fim'] ?? $ultima_viagem['cod_local_fim'];
+                $info_final = $ultima_viagem['nome_via'] ?? $ultima_viagem['cod_via'];
+                if(empty($info_final) && $ultima_viagem['TRIP_ID'] == 0) $info_final = "DESLOCAMENTO / RECOLHA";
 
-                // B. Chegada e Conexão
-                $proxima = ($i < $total - 1) ? $viagens_raw[$i+1] : null;
-                $chegada_str = formatar_hora_gtfs($atual['END_TIME']);
-                $saida_str = ''; $loc_str = mb_strtoupper($destino, 'UTF-8');
-                $info_str = ''; $linha_str = ''; $hora_ref = substr($atual['END_TIME'], 0, 5);
-                $is_oc = false;
-
-                if ($proxima && $proxima['cod_local_inicio'] == $atual['cod_local_fim']) {
-                    $saida_str = formatar_hora_gtfs($proxima['START_TIME']);
-                    $info_prox = $proxima['nome_via'] ?? $proxima['cod_via'];
-                    if(empty($info_prox) && $proxima['TRIP_ID'] == 0) $info_prox = "DESLOCAMENTO / RECOLHA";
-                    $info_str = mb_strtoupper($info_prox, 'UTF-8');
-                    $linha_str = $proxima['linha'];
-                    $is_oc = ($proxima['TRIP_ID'] == 0);
-                    $hora_ref = substr($proxima['START_TIME'], 0, 5);
-                } else {
-                    $info_str = mb_strtoupper($info, 'UTF-8') . " (CHEGADA)";
-                    $linha_str = $atual['linha'];
-                    $is_oc = ($atual['TRIP_ID'] == 0);
-                }
+                // WorkID Final
+                $wid_fim = ($tipo_busca === 'workid') ? $valor_busca : obter_workid($ultima_viagem['END_TIME'], $mapa_servicos);
 
                 $linhas_tabela[] = [
-                    'linha' => $linha_str, 'tabela' => '-', 'hora_ref' => $hora_ref,
-                    'chegada_show' => $chegada_str, 'saida_show' => $saida_str,
-                    'local' => $loc_str, 'info' => $info_str, 'is_ociosa' => $is_oc
+                    'linha' => $ultima_viagem['linha'],
+                    'tabela' => '-',
+                    'workid' => $wid_fim,
+                    'chegada_show' => formatar_hora_gtfs($ultima_viagem['END_TIME']),
+                    'saida_show' => '-', 
+                    'local' => mb_strtoupper($destino_final, 'UTF-8'),
+                    'info' => mb_strtoupper($info_final, 'UTF-8'),
+                    'is_ociosa' => ($ultima_viagem['TRIP_ID'] == 0)
                 ];
             }
 
-            // 5. WorkID
-            foreach ($linhas_tabela as &$r) {
-                $wid = "-"; $h = $r['hora_ref'];
-                foreach ($mapa_servicos as $svc) {
-                    if (($svc['inicio'] > $svc['fim'] && ($h >= $svc['inicio'] || $h <= $svc['fim'])) || ($h >= $svc['inicio'] && $h <= $svc['fim'])) {
-                        $wid = $svc['id']; break;
+            // 6. Recálculo WorkID (Apenas se não for busca por WorkID)
+            if ($tipo_busca !== 'workid') {
+                foreach ($linhas_tabela as &$r) {
+                    if ($r['workid'] === '') {
+                         $r['workid'] = obter_workid($r['saida_show'] !== '-' ? $r['saida_show'] : $r['chegada_show'], $mapa_servicos);
                     }
                 }
-                $r['workid'] = ($wid != '-') ? $wid : ''; unset($r['hora_ref']);
+            } else {
+                // 7. Limpeza Visual das Pontas (Apenas no WorkID)
+                if (!empty($linhas_tabela)) {
+                    $linhas_tabela[0]['chegada_show'] = '-';
+                    $ultimo = count($linhas_tabela) - 1;
+                    $linhas_tabela[$ultimo]['saida_show'] = '-';
+                }
             }
 
-            // 6. Filtro WorkID (se necessário)
-            if ($tipo_busca === 'workid') {
-                $linhas_tabela = array_values(array_filter($linhas_tabela, fn($r) => trim($r['workid']) == trim($valor_busca)));
-            }
-
-            // 7. Resumo Linhas
+            // 8. Resumo Cabeçalho
             $linhas_seq = [];
             foreach ($linhas_tabela as $r) {
                 $l = trim($r['linha']);
@@ -254,4 +310,19 @@ try {
         exit;
     }
 } catch (Exception $e) { enviar_erro_json($e->getMessage()); }
+
+function obter_workid($hora, $mapa) {
+    if(!$hora || $hora == '-') return '';
+    $h = substr($hora, 0, 5);
+    foreach ($mapa as $svc) {
+        $ini = substr($svc['inicio'], 0, 5);
+        $fim = substr($svc['fim'], 0, 5);
+        if ($ini > $fim) {
+            if ($h >= $ini || $h < $fim) return $svc['id'];
+        } else {
+            if ($h >= $ini && $h < $fim) return $svc['id'];
+        }
+    }
+    return '';
+}
 ?>
