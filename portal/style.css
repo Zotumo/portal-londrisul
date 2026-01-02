@@ -1,0 +1,229 @@
+/* style.css - Completo e Atualizado v0.1*/
+
+/* Definindo as cores da CMTU como variáveis CSS */
+:root {
+    --cmtu-azul: #005EB8;
+    --cmtu-amarelo: #FFDA29;
+    --cmtu-verde: #008040;
+    --cmtu-vermelho: #E60012;
+}
+
+/* Estilos gerais */
+body {
+    font-family: sans-serif; /* Fonte mais legível */
+}
+
+/* --- Personalização com Cores CMTU --- */
+
+/* Barra de Navegação */
+.navbar.bg-dark { /* Seleciona a navbar que TEM a classe bg-dark */
+    background-color: var(--cmtu-azul) !important; /* Sobrescreve o bg-dark com o Azul CMTU */
+}
+
+/* Links da Navbar */
+.navbar-dark .navbar-nav .nav-link {
+    margin-right: 5px; /* Pequeno espaço entre o ícone e o texto */
+    transition: color 0.2s ease-in-out; /* Suaviza a transição de cor */
+}
+.navbar-dark .navbar-nav .nav-link:hover {
+    color: var(--cmtu-amarelo); /* Amarelo no hover para destaque */
+}
+.navbar-dark .navbar-nav .nav-item.active .nav-link{
+     color: #ffffff; /* Garante branco no item ativo */
+}
+
+/* Botões Primários (Ex: Buscar) */
+.btn-primary {
+    background-color: var(--cmtu-azul);
+    border-color: var(--cmtu-azul);
+    color: #ffffff; /* Garante texto branco */
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out; /* Suaviza transição */
+}
+
+.btn-primary:hover, .btn-primary:active, .btn-primary:focus {
+    background-color: #004a9a; /* Um tom um pouco mais escuro do azul para feedback */
+    border-color: #004a9a;
+    color: #ffffff;
+    box-shadow: none; /* Remove sombra do Bootstrap no focus se desejar */
+}
+
+/* Botões Secundários (Ex: Leia mais nas notícias) */
+.btn-secondary {
+    background-color: var(--cmtu-verde); /* Verde CMTU */
+    border-color: var(--cmtu-verde);
+    color: #ffffff; /* Texto branco para contraste */
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out; /* Suaviza transição */
+}
+
+.btn-secondary:hover, .btn-secondary:active, .btn-secondary:focus {
+    background-color: #006a33; /* Verde um pouco mais escuro */
+    border-color: #006a33;
+    color: #ffffff;
+    box-shadow: none;
+}
+
+/* Botões de Perigo */
+.btn-danger {
+    color: #fff;
+    background-color: var(--cmtu-vermelho);
+    border-color: var(--cmtu-vermelho);
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out; /* Suaviza transição */
+}
+
+.btn-danger:hover, .btn-danger:active, .btn-danger:focus {
+    color: #fff;
+    background-color: #c3000f; /* Vermelho mais escuro */
+    border-color: #b8000e;
+    box-shadow: none;
+}
+
+
+/* Jumbotron (Boas-vindas) */
+#boas-vindas .jumbotron {
+    background-color: #f8f9fa; /* Cor de fundo padrão Bootstrap cinza claro */
+    padding: 2rem 1rem;
+    border-radius: 0.5rem;
+    border-left: 5px solid var(--cmtu-azul); /* Adiciona uma borda azul à esquerda */
+    margin-bottom: 2rem; /* Espaço abaixo do Jumbotron */
+}
+#boas-vindas .jumbotron h1 {
+    color: var(--cmtu-azul); /* Título em Azul CMTU */
+}
+
+/* Card da Seção de Busca */
+#busca-rapida .card {
+    border-left: 5px solid var(--cmtu-verde); /* Borda esquerda Verde CMTU */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Sombra suave */
+}
+
+/* Cards da Seção de Notícias */
+#noticias .card {
+    margin-bottom: 20px;
+    border-left: 5px solid var(--cmtu-amarelo); /* Borda esquerda Amarelo CMTU */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Sombra suave */
+    transition: transform 0.2s ease-in-out; /* Efeito suave ao passar o mouse */
+}
+#noticias .card:hover {
+    transform: translateY(-3px); /* Leve elevação ao passar o mouse */
+}
+
+#noticias .card .card-title {
+     color: var(--cmtu-azul); /* Título da notícia em Azul CMTU */
+     font-weight: bold;
+}
+
+/* Seção Meus Horários (Quando visível) */
+#meus-horarios .card {
+     border-left: 5px solid var(--cmtu-vermelho); /* Borda Vermelha para diferenciar e destacar */
+     box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Mantém a sombra */
+}
+
+/* Alertas */
+/* Prompt de Login (Alert Info) */
+#prompt-login .alert-info { /* Estilo específico para o prompt */
+    background-color: #fffacd; /* Amarelo pálido (derivado do amarelo CMTU) */
+    border-color: var(--cmtu-amarelo);
+    color: #333; /* Cor do texto mais escura para contraste */
+}
+#prompt-login .alert-info a {
+    color: var(--cmtu-azul); /* Link em azul */
+    font-weight: bold;
+}
+
+/* Alertas de Perigo/Erro */
+.alert-danger {
+    color: #ffffff; /* Texto branco para melhor contraste com o vermelho */
+    background-color: var(--cmtu-vermelho); /* Fundo Vermelho CMTU */
+    border-color: #c3000f; /* Borda um tom mais escuro */
+}
+
+.alert-danger hr {
+    border-top-color: #c3000f;
+}
+
+.alert-danger .alert-link {
+    color: #ffffff; /* Link dentro do alerta também branco */
+    text-decoration: underline;
+}
+
+/* --- Outros estilos --- */
+
+header {
+    margin-bottom: 20px; /* Espaço abaixo do cabeçalho */
+}
+
+/* Rodapé */
+footer.bg-dark { /* Seleciona o footer que TEM bg-dark */
+    background-color: var(--cmtu-azul) !important; /* Azul CMTU */
+    color: #ffffff;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    margin-top: 2rem; /* Adiciona espaço acima do rodapé */
+}
+
+/* --- Estilos para mobile (responsividade) --- */
+@media (max-width: 768px) {
+    #busca-rapida .form-row {
+        flex-direction: column; /* Coloca os campos um abaixo do outro */
+    }
+    #busca-rapida .form-group {
+        margin-bottom: 1rem; /* Espaçamento entre os campos */
+    }
+    #noticias .col-md-4 {
+        width: 100%;
+    }
+    /* Ajuste no Jumbotron para telas menores */
+    #boas-vindas .jumbotron {
+        padding: 1.5rem 1rem;
+    }
+     #boas-vindas .jumbotron h1 {
+        font-size: 2rem; /* Diminui um pouco o título */
+    }
+}
+/* Adicione ou atualize no final do arquivo */
+
+#container-botoes-data .btn-data-dia {
+    min-width: 100px;
+    font-weight: 600;
+	margin: 0px 5px 0px 0px;
+}
+
+#container-botoes-data .btn-data-dia.active {
+    background-color: #0056b3; /* Azul mais forte */
+    color: white;
+    border-color: #0056b3;
+}
+
+#resultados-busca h4 {
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+/* Atualização de Estilo das Abas */
+.nav-tabs .nav-link {
+    background-color: #f8f9fa; 
+    color: #495057;
+    margin: 0px 3px 5px 0px;
+    border: 1px solid #ced4da; /* Borda visível */
+    border-radius: 4px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link:hover {
+    background-color: #e2e6ea;
+    border-color: #adb5bd;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Ajuste fino da tabela */
+.table-bordered th, .table-bordered td {
+    vertical-align: middle !important;
+}
