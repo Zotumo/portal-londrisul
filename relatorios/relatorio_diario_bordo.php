@@ -59,7 +59,6 @@
                         <option value="workid">Por WorkID (Serviço)</option>
                         <option value="linha">Por Linha (Todos Blocos)</option>
                         <option value="linha_hora">Por Linha e Hora</option>
-                        <option value="motorista">Por Motorista (Escala)</option>
                     </select>
                 </div>
                 
@@ -71,13 +70,6 @@
                 <div class="col-md-2" id="container_workid">
                     <label class="form-label fw-bold">Serviço (WorkID)</label>
                     <select id="filtro_workid" class="form-select select2"><option value="">Selecione...</option></select>
-                </div>
-
-                <div class="col-md-3" id="container_motorista" style="display:none;">
-                    <label class="form-label fw-bold">Selecione o Motorista</label>
-                    <select id="filtro_motorista" class="form-select select2" data-placeholder="Nome ou Matrícula...">
-                        <option value="">Selecione...</option>
-                    </select>
                 </div>
 
                 <div class="col-md-2" id="container_horario" style="display:none;">
@@ -146,7 +138,6 @@ $(document).ready(function() {
         // Esconde tudo primeiro
         $('#container_workid').hide();
         $('#container_linha').hide();
-        $('#container_motorista').hide();
         $('#container_horario').hide();
 
         if (modo === 'workid') {
@@ -157,8 +148,6 @@ $(document).ready(function() {
         } else if (modo === 'linha_hora') {
             $('#container_linha').show();
             $('#container_horario').show();
-        } else if (modo === 'motorista') {
-            $('#container_motorista').show();
         }
     }
 
